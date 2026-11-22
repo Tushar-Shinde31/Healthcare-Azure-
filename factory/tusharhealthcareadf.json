@@ -1,0 +1,16 @@
+{
+	"name": "tusharhealthcareadf",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true,
+			"isExplicitlySet": false
+		}
+	},
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "d10ee17f-a2c1-4e7a-bc24-1779c01d3f2b",
+		"tenantId": "e4a6c183-14ba-41a5-9257-6c6860e3cf54"
+	}
+}
