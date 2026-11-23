@@ -1,0 +1,33 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "tusharhealthcareadf"
+		},
+		"ls_hc_adls_accountKey": {
+			"value": ""
+		},
+		"ls_hc_azuresql_password": {
+			"value": ""
+		},
+		"ls_hc_adls_properties_typeProperties_url": {
+			"value": "https://healthcaretusharsa.dfs.core.windows.net/"
+		},
+		"ls_hc_azuresql_properties_typeProperties_server": {
+			"value": "tusharserverforhc.database.windows.net"
+		},
+		"ls_hc_azuresql_properties_typeProperties_database": {
+			"value": "healthcare_db11"
+		},
+		"ls_hc_azuresql_properties_typeProperties_userName": {
+			"value": "tusharserver"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
