@@ -229,15 +229,24 @@
 								"storedProcedureName": "[control_schema].[record_extract_failure]",
 								"storedProcedureParameters": {
 									"batch_id": {
-										"value": "@pipeline().RunId",
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
 										"type": "String"
 									},
 									"copied_rows": {
-										"value": "@activity('CopySource').output.rowsCopied",
+										"value": {
+											"value": "@activity('CopySource').output.rowsCopied",
+											"type": "Expression"
+										},
 										"type": "Int64"
 									},
 									"error_message": {
-										"value": "@activity('CopySource').error.message",
+										"value": {
+											"value": "@activity('CopySource').error.message",
+											"type": "Expression"
+										},
 										"type": "String"
 									},
 									"failed_activity": {
@@ -248,11 +257,17 @@
 										"type": "String"
 									},
 									"read_rows": {
-										"value": "@activity('CopySource').output.rowsRead",
+										"value": {
+											"value": "@activity('CopySource').output.rowsRead",
+											"type": "Expression"
+										},
 										"type": "Int64"
 									},
 									"table_name": {
-										"value": "@item().table_name",
+										"value": {
+											"value": "@item().table_name",
+											"type": "Expression"
+										},
 										"type": "String"
 									}
 								}
@@ -268,9 +283,14 @@
 			{
 				"name": "CommitBatch",
 				"type": "SqlServerStoredProcedure",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "LoadBronze",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -283,7 +303,10 @@
 					"storedProcedureName": "[control_schema].[commit_batch]",
 					"storedProcedureParameters": {
 						"batch_id": {
-							"value": "@pipeline().RunId",
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
 							"type": "String"
 						},
 						"expected_tables": {
@@ -341,6 +364,33 @@
 						"type": "DatasetReference"
 					},
 					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "LoadBronze",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "GetBatchDetails",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/atulkala96@gmail.com/setup_bronze_load"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azureadb",
+					"type": "LinkedServiceReference"
 				}
 			}
 		],
