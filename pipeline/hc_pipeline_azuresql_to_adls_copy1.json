@@ -102,10 +102,6 @@
 				"userProperties": [],
 				"typeProperties": {
 					"notebookPath": "/Users/atulkala96@gmail.com/setup_bronze_load"
-				},
-				"linkedServiceName": {
-					"referenceName": "ls_azureadb",
-					"type": "LinkedServiceReference"
 				}
 			}
 		],
