@@ -116,12 +116,29 @@
 										"type": "ParquetWriteSettings"
 									}
 								},
-								"enableStaging": false
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
 							},
 							"inputs": [
 								{
 									"referenceName": "ds_hc_sql",
 									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_hc_parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"folder_path": "@concat('healthcare/sql/',pipeline().RunId,'/',item().table_name)"
+									}
 								}
 							]
 						},
@@ -155,27 +172,22 @@
 										"type": "String"
 									},
 									"copied_rows": {
-										"value": {
-											"value": "@activity('CopySource').output.rowsCopied",
-											"type": "Expression"
-										},
+										"value": "@activity('CopySource').output.rowsCopied",
 										"type": "Int64"
 									},
 									"read_rows": {
-										"value": {
-											"value": "@activity('CopySource').output.rowsCopied",
-											"type": "Expression"
-										},
+										"value": "@activity('CopySource').output.rowsCopied",
 										"type": "Int64"
 									},
 									"table_name": {
-										"value": {
-											"value": "@item().table_name",
-											"type": "Expression"
-										},
+										"value": "@item().table_name",
 										"type": "String"
 									}
 								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_hc_azuresql",
+								"type": "LinkedServiceReference"
 							}
 						}
 					]
@@ -211,20 +223,18 @@
 							"type": "String"
 						},
 						"expected_tables": {
-							"value": {
-								"value": "@length(activity('GetTables').output.value)",
-								"type": "Expression"
-							},
+							"value": "@length(activity('GetTables').output.value)",
 							"type": "Int32"
 						},
 						"high_watermark": {
-							"value": {
-								"value": "@activity('GetWindow').output.firstRow.high_watermark",
-								"type": "Expression"
-							},
+							"value": "@activity('GetWindow').output.firstRow.high_watermark",
 							"type": "DateTime"
 						}
 					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_hc_azuresql",
+					"type": "LinkedServiceReference"
 				}
 			},
 			{
@@ -247,7 +257,11 @@
 						"referenceName": "bronze",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true
+					"waitOnCompletion": true,
+					"parameters": {
+						"pBatchId": "fa7c87c6-80b4-4e72-ba5f-8449f06c78df",
+						"pContainer": "landing"
+					}
 				}
 			}
 		],

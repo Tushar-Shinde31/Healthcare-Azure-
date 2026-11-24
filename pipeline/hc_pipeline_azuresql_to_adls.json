@@ -140,10 +140,6 @@
 										"folder_path": {
 											"value": "@concat('healthcare/sql/',pipeline().RunId,'/',item().table_name)",
 											"type": "Expression"
-										},
-										"file_path": {
-											"value": "item().table_name",
-											"type": "Expression"
 										}
 									}
 								}

@@ -51,7 +51,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Users/rajputamol395@gmail.com/bronze_nb",
+					"notebookPath": "/Users/atulkala96@gmail.com/setup_bronze_load",
 					"baseParameters": {
 						"batch_id": {
 							"value": "@pipeline().parameters.pBatchId",
@@ -66,6 +66,10 @@
 							"type": "Expression"
 						}
 					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azureadb",
+					"type": "LinkedServiceReference"
 				}
 			}
 		],
