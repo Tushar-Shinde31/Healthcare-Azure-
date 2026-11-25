@@ -382,11 +382,15 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Users/atulkala96@gmail.com/setup_bronze_load"
-				},
-				"linkedServiceName": {
-					"referenceName": "ls_azureadb",
-					"type": "LinkedServiceReference"
+					"notebookPath": "/Users/atulkala96@gmail.com/setup_bronze_load",
+					"baseParameters": {
+						"batch_id": "cfeda954-f591-43b2-91be-47946c906b37",
+						"batch_info": "@string(activity('GetBatchDetails').output.value)",
+						"container": {
+							"value": "landing",
+							"type": "Expression"
+						}
+					}
 				}
 			}
 		],
