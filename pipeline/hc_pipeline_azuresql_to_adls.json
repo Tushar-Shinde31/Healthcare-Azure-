@@ -384,7 +384,7 @@
 				"typeProperties": {
 					"notebookPath": "/Users/atulkala96@gmail.com/setup_bronze_load",
 					"baseParameters": {
-						"batch_id": "9e982379-4524-41e8-a38d-c060232c2f19",
+						"batch_id": "102e19b5-1fa5-42ce-8932-d742bfcf8418",
 						"batch_info": {
 							"value": "@string(activity('GetBatchDetails').output.value)",
 							"type": "Expression"
