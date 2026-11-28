@@ -1,0 +1,89 @@
+{
+	"name": "bronze",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetBatchDetails",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat('SELECT r.table_name, r.copied_rows, CASE WHEN c.last_success IS NULL THEN ''FULL'' ELSE c.load_mode END AS load_mode FROM control_schema.extract_runs r JOIN control_schema.source_config c ON c.table_name = r.table_name WHERE r.batch_id = ''', pipeline().parameters.pBatchId, ''' ORDER BY r.table_name;')\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_hc_sql",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "LoadBronze",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "GetBatchDetails",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/atulkala96@gmail.com/setup_bronze_load",
+					"baseParameters": {
+						"batch_id": {
+							"value": "@pipeline().parameters.pBatchId",
+							"type": "Expression"
+						},
+						"batch_info": {
+							"value": "@string(activity('GetBatchDetails').output.value)",
+							"type": "Expression"
+						},
+						"container ": {
+							"value": "@pipeline().parameters.pContainer",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azureadb",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"pBatchId": {
+				"type": "string"
+			},
+			"pContainer": {
+				"type": "string",
+				"defaultValue": "landing"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-11-23T13:53:16Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

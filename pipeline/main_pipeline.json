@@ -1,0 +1,278 @@
+{
+	"name": "main_pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetWindow",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT CONVERT(varchar(23), SYSUTCDATETIME(), 126) AS high_watermark;",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_hc_sql",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "GetTables",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "GetWindow",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT table_name,\n       CASE WHEN last_success IS NULL THEN 'FULL' ELSE load_mode END AS load_mode,\n       CONVERT(varchar(23), COALESCE(last_success, CONVERT(datetime2(3),'1900-01-01',126)), 126) AS last_success\nFROM control_schema.source_config\nORDER BY table_name;",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_hc_sql",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "CopyTables",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetTables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetTables').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "CopySource",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "@if(equals(item().load_mode,'FULL'),\n concat('SELECT * FROM dbo.[',item().table_name,']'),\n concat('SELECT * FROM dbo.[',item().table_name,'] WHERE updated_at >= CONVERT(datetime2(3),''',item().last_success,''',126) AND updated_at <= CONVERT(datetime2(3),''',activity('GetWindow').output.firstRow.high_watermark,''',126)'))",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_hc_sql",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_hc_parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"folder_path": "@concat('healthcare/sql/',pipeline().RunId,'/',item().table_name)"
+									}
+								}
+							]
+						},
+						{
+							"name": "RecordExtract",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "CopySource",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[control_schema].[record_extract]",
+								"storedProcedureParameters": {
+									"batch_id": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"copied_rows": {
+										"value": "@activity('CopySource').output.rowsCopied",
+										"type": "Int64"
+									},
+									"read_rows": {
+										"value": "@activity('CopySource').output.rowsCopied",
+										"type": "Int64"
+									},
+									"table_name": {
+										"value": "@item().table_name",
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_hc_azuresql",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "CommitBatch",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ExecuteBronzePipeline",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[control_schema].[commit_batch]",
+					"storedProcedureParameters": {
+						"batch_id": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"expected_tables": {
+							"value": "@length(activity('GetTables').output.value)",
+							"type": "Int32"
+						},
+						"high_watermark": {
+							"value": "@activity('GetWindow').output.firstRow.high_watermark",
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_hc_azuresql",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "ExecuteBronzePipeline",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "CopyTables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "bronze",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pBatchId": "fa7c87c6-80b4-4e72-ba5f-8449f06c78df",
+						"pContainer": "landing"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"pContainer": {
+				"type": "string",
+				"defaultValue": "landing"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-11-23T14:09:34Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
